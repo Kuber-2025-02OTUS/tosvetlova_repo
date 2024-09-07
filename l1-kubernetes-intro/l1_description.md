@@ -9,4 +9,4 @@
    ```
 ---------
 Результат:
-![Nginx](https://disk.yandex.ru/i/LzasQITrHBQtPg)
+![Nginx](./l1-result.png)
