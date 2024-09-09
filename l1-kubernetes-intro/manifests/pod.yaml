@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: homework-pod
+  namespace: homework
+  labels:
+    app: homework-app
+spec:
+  volumes:
+    - name: shared-volume
+      emptyDir: {}
+  initContainers:
+  - name: create-html
+    image: busybox:1.28
+    command: ['/bin/sh','-c','echo "Hello, World! Your Pod IP is: $POD_IP" > /init/index.html']
+    env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /init
+  containers:
+  - name: web-server
+    image: nginx
+    command: ["/bin/sh", "-c"]
+    args:
+    - |
+      cp /homework/index.html /usr/share/nginx/html/index.html;\
+      nginx -g 'daemon off;'
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: shared-volume
+      mountPath: /homework
+    lifecycle:
+        preStop:
+          exec:
+            command: ["/bin/sh","-c","rm /homework/index.html"]
