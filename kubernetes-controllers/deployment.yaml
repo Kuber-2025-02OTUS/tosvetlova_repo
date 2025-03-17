@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  homework-dp
+  namespace: homework
+  labels:
+    app: homework-app
+spec:
+  selector:
+    matchLabels:
+      app: homework-app
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: homework-app
+    spec:
+      nodeSelector:
+        homework: "true"
+      initContainers:
+      - name: create-html
+        image: busybox:1.28
+        command: ['/bin/sh','-c','echo "Hello, World! Your Pod IP is: $POD_IP" > /init/index.html']
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        volumeMounts:
+        - name: shared-volume
+          mountPath: /init
+      containers:
+      - name: web-server
+        image: nginx
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          cp /homework/index.html /usr/share/nginx/html/index.html;\
+          nginx -g 'daemon off;'
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "test -f /homework/index.html"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh","-c","rm /homework/index.html"]
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: shared-volume
+          mountPath: /homework
+      volumes:
+        - name: shared-volume
+          emptyDir: {}
+      
